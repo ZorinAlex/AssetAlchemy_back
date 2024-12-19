@@ -30,6 +30,28 @@ export interface IProcessImages{
     imagesData: Array<IRect>,
 }
 
+export interface IPackData{
+    filename: string,
+    char: string
+}
+
+export interface ICharXmlData{
+    id: string,
+    x:string,
+    y:string,
+    width: string,
+    height: string,
+    xoffset: string,
+    yoffset: string,
+    xadvance: string
+}
+
+export interface ICharsPageData{
+    id: string,
+    file: string
+}
+
+
 export enum ESpriteSheet{
     WEBP = 'webp', PNG = 'png', JPEG = 'jpeg'
 }

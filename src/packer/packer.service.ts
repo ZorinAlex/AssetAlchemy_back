@@ -2,13 +2,23 @@ import {Injectable, OnModuleInit} from '@nestjs/common';
 import {join} from "path";
 import fs from "fs";
 import {IRectangle, MaxRectsPacker, Rectangle} from 'maxrects-packer';
-import {ESpriteSheet, IProcessImages, IRect, ISheetData} from "./packer.interfaces";
+import {
+    ESpriteSheet,
+    ICharsPageData,
+    ICharXmlData,
+    IPackData,
+    IProcessImages,
+    IRect,
+    ISheetData,
+} from './packer.interfaces';
 import {PackImagesDto} from "./pack.dto";
 import {Jimp} from "jimp";
-import {findIndex, forEach} from "lodash"
+import { find, findIndex, forEach } from 'lodash';
 import * as path from "node:path";
 import sharp from 'sharp';
 import {ConfigService} from "@nestjs/config";
+import { PackBitmapFontDto } from './bitmap.font.dto';
+import { getASCIIData } from '../utils/ascii';
 
 @Injectable()
 export class PackerService implements OnModuleInit{
@@ -156,5 +166,61 @@ export class PackerService implements OnModuleInit{
         } catch (error) {
             console.error('Error generating JSON metadata:', error);
         }
+    }
+
+    async fontXmlFromJSON(filepath: Array<string>, options: PackBitmapFontDto): Promise<string> {
+        const imagesMap: Array<IPackData> = options.data;
+        const pagesData: Array<ICharsPageData> = [];
+        const charData: Array<ICharXmlData> = [];
+        for(let index: number = 0; index<filepath.length; index++){
+            const jsonData = JSON.parse(fs.readFileSync(filepath[index], 'utf-8'));
+            pagesData.push({file:jsonData.meta.image, id: index.toString()})
+            forEach(jsonData.frames, (frameDat, frameName)=>{
+                const charMap = find(imagesMap, im=> im.filename.split('.')[0] === frameName)
+                if(charMap){
+                    charData.push({
+                        id: getASCIIData(charMap.char).DEC.toString(),
+                        x:frameDat.frame.x,
+                        y:frameDat.frame.y,
+                        width: frameDat.frame.w,
+                        height: frameDat.frame.h,
+                        xoffset: '0',
+                        yoffset: '0',
+                        xadvance: frameDat.frame.w
+                    })
+                }
+            })
+        }
+        const xmlData = this.createBitmapFontXML(pagesData, charData, options);
+
+        try {
+            const outputPath = path.join(this.outputPath, `${options.name}.xml`);
+            await fs.promises.writeFile(outputPath, xmlData);
+            return outputPath
+        } catch (error) {
+            console.error('Error generating XML metadata:', error);
+        }
+    }
+
+    createBitmapFontXML(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>, options: PackBitmapFontDto) {
+        let xml = '<font>\n';
+        xml += `<info face="${options.name}" size="${options.size}" />\n`;
+        xml += `  <common lineHeight="${options.lineHeight}" />\n`;
+        xml += '  <pages>\n';
+        forEach(pagesData, pd=>{
+            xml += `    <page id="${pd.id}" file="${pd.file}" />\n`;
+        })
+        xml += '  </pages>\n';
+        xml += '  <chars>\n';
+        forEach(charData, cd=>{
+            xml += `    <char id="${cd.id}" x="${cd.x}" y="${cd.y}" width="${cd.width}" height="${cd.height}" xoffset="${cd.xoffset}" yoffset="${cd.yoffset}" xadvance="${cd.xadvance}" />\n`;
+        })
+        xml += '  </chars>\n';
+        xml += '  <kernings>\n';
+        xml += '    <!-- Kerning pairs -->\n';
+        xml += '  </kernings>\n';
+        xml += '</font>';
+
+        return xml;
     }
 }

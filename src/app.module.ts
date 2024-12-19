@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PackerModule } from './packer/packer.module';
 import { ArchiveService } from './archive/archive.service';
 import { ArchiveModule } from './archive/archive.module';
@@ -19,7 +17,7 @@ import Joi from "joi";
     PackerModule,
     ArchiveModule
   ],
-  controllers: [AppController],
-  providers: [AppService, ArchiveService],
+  controllers: [],
+  providers: [ArchiveService],
 })
 export class AppModule {}
