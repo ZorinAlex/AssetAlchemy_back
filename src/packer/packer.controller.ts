@@ -35,11 +35,9 @@ export class PackerController {
       }),
     ) files: Express.Multer.File[],
     @Body() options: PackImagesDto) {
-
     const filesNames = await this.packerService.packImages(files, options);
     const zipPath = join(this.packerService.outputPath, `${options.name}.zip`);
     await this.archiveService.createZip(filesNames, zipPath);
-
     const fileStream = createReadStream(zipPath);
     fileStream.on('close', () => {
       this.archiveService.removeFiles([zipPath]);

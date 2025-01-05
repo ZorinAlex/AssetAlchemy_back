@@ -1,0 +1,32 @@
+version: '3.7'
+
+services:
+  server:
+    image: zorinalex/assetalchemy_server
+    container_name: assetalchemy_server
+    restart: always
+    deploy:
+      update_config:
+        order: start-first
+    environment:
+      PORT: 3100
+      TEMP_PATH: ../temp
+    networks:
+      - assetalchemy_network
+  client:
+    image: zorinalex/assetalchemy_client
+    container_name: assetalchemy_client
+    restart: always
+    ports:
+      - "8083:8083"
+    deploy:
+      update_config:
+        order: start-first
+    depends_on:
+      - server
+    networks:
+      - assetalchemy_network
+
+networks:
+  assetalchemy_network:
+    driver: bridge

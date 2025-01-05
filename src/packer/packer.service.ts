@@ -26,7 +26,7 @@ export class PackerService implements OnModuleInit{
     public outputPath: string;
 
     onModuleInit(): any {
-        const path = this.configService.get('PATH');
+        const path = this.configService.get('TEMP_PATH');
         this.outputPath = join(__dirname, path);
         if (!fs.existsSync(this.outputPath)) {
             fs.mkdirSync(this.outputPath, { recursive: true });
