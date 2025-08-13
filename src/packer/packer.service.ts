@@ -19,6 +19,7 @@ import sharp from 'sharp';
 import {ConfigService} from "@nestjs/config";
 import { PackBitmapFontDto } from './bitmap.font.dto';
 import { getASCIIData } from '../utils/ascii';
+import {calc_font_props, calc_scales} from "../utils/font_utils";
 
 @Injectable()
 export class PackerService implements OnModuleInit{
@@ -168,7 +169,7 @@ export class PackerService implements OnModuleInit{
         }
     }
 
-    async fontXmlFromJSON(filepath: Array<string>, options: PackBitmapFontDto): Promise<string> {
+    async fontXmlFromJSON(filepath: Array<string>, options: PackBitmapFontDto): Promise<string[]> {
         const imagesMap: Array<IPackData> = options.data;
         const pagesData: Array<ICharsPageData> = [];
         const charData: Array<ICharXmlData> = [];
@@ -186,41 +187,86 @@ export class PackerService implements OnModuleInit{
                         height: frameDat.frame.h,
                         xoffset: '0',
                         yoffset: '0',
-                        xadvance: frameDat.frame.w
+                        xadvance: frameDat.frame.w,
+                        page: index,
+                        chnl: 15
                     })
                 }
             })
         }
         const xmlData = this.createBitmapFontXML(pagesData, charData, options);
 
+        const outputPath: Array<string> = [];
         try {
-            const outputPath = path.join(this.outputPath, `${options.name}.xml`);
-            await fs.promises.writeFile(outputPath, xmlData);
-            return outputPath
+            const path_xml = path.join(this.outputPath, `${options.name}.xml`)
+            await fs.promises.writeFile(path_xml, xmlData);
+            outputPath.push(path_xml);
         } catch (error) {
             console.error('Error generating XML metadata:', error);
         }
+
+        const fntData = this.createBitmapFontFNT(pagesData, charData, options);
+
+        try {
+            const path_fnt = path.join(this.outputPath, `${options.name}.fnt`);
+            await fs.promises.writeFile(path_fnt, fntData);
+            outputPath.push(path_fnt)
+        } catch (error) {
+            console.error('Error generating FNT metadata:', error);
+        }
+        return outputPath;
     }
 
     createBitmapFontXML(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>, options: PackBitmapFontDto) {
-        let xml = '<font>\n';
-        xml += `<info face="${options.name}" size="${options.size}" />\n`;
-        xml += `  <common lineHeight="${options.lineHeight}" />\n`;
+        const {scaleH, scaleW} = calc_scales(pagesData, charData);
+        const {lineHeight, base} = calc_font_props(charData);
+        let xml = `<?xml version='1.0'?> \n`;
+        xml += '<font>\n';
+        xml += `<info aa='1' face="${options.name}" size='${options.size}' smooth='1' stretchH='100' bold='0' padding='0,0,0,0' spacing='0,0' italic='0' />\n`;
+        xml += `  <common lineHeight='${lineHeight}' scaleH='${scaleH}' scaleW='${scaleW}' base='${base}'/>\n`;
         xml += '  <pages>\n';
         forEach(pagesData, pd=>{
-            xml += `    <page id="${pd.id}" file="${pd.file}" />\n`;
+            xml += `    <page id='${pd.id}' file='${pd.file}' />\n`;
         })
         xml += '  </pages>\n';
-        xml += '  <chars>\n';
+        xml += `  <chars count='${charData.length}'>\n`;
         forEach(charData, cd=>{
-            xml += `    <char id="${cd.id}" x="${cd.x}" y="${cd.y}" width="${cd.width}" height="${cd.height}" xoffset="${cd.xoffset}" yoffset="${cd.yoffset}" xadvance="${cd.xadvance}" />\n`;
+            xml += `    <char id='${cd.id}' x='${cd.x}' y='${cd.y}' width='${cd.width}' height='${cd.height}' xoffset='${cd.xoffset}' yoffset='${cd.yoffset}' xadvance='${cd.xadvance}' page='${cd.page}' chnl='${cd.chnl}'/>\n`;
         })
         xml += '  </chars>\n';
-        xml += '  <kernings>\n';
-        xml += '    <!-- Kerning pairs -->\n';
-        xml += '  </kernings>\n';
         xml += '</font>';
-
+        console.log(xml);
         return xml;
+    }
+
+    createBitmapFontFNT(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>, options: PackBitmapFontDto) {
+        const padding = [0, 0, 0, 0]; // top,right,bottom,left
+        const spacing =  [1, 1];       // x,y
+        const base = options.size;
+
+        // порахуємо scaleW/scaleH з усіх сторінок
+        const {scaleH, scaleW} = calc_scales(pagesData, charData);
+        const pageCount = pagesData.length;
+        let out = '';
+        out += `info face="${escapeQuotes(options.name)}" size=${toInt(options.size)} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=${padding.join(',')} spacing=${spacing.join(',')} outline=0\n`;
+        out += `common lineHeight=${toInt(options.lineHeight)} base=${toInt(base)} scaleW=${toInt(scaleW)} scaleH=${toInt(scaleH)} pages=${pageCount} packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4\n`;
+
+        // список сторінок
+        pagesData.forEach(pd => {
+            out += `page id=${toInt(pd.id)} file="${escapeQuotes(pd.file)}"\n`;
+        });
+
+        // символи
+        out += `chars count=${charData.length}\n`;
+        charData.forEach(cd => {
+            out += `char id=${toInt(cd.id)} x=${toInt(cd.x)} y=${toInt(cd.y)} width=${toInt(cd.width)} height=${toInt(cd.height)} xoffset=${toInt(cd.xoffset)} yoffset=${toInt(cd.yoffset)} xadvance=${toInt(cd.xadvance)} page=${toInt(cd.page ?? 0)} chnl=${toInt(cd.chnl ?? 15)}\n`;
+        });
+
+        // кернінги (поки 0)
+        out += `kernings count=0\n`;
+        return out;
+
+        function toInt(v: any) { return Number.parseInt(String(v), 10) || 0; }
+        function escapeQuotes(s: string) { return String(s).replace(/"/g, '\\"'); }
     }
 }

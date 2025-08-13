@@ -43,7 +43,9 @@ export interface ICharXmlData{
     height: string,
     xoffset: string,
     yoffset: string,
-    xadvance: string
+    xadvance: string,
+    page: number,
+    chnl: number
 }
 
 export interface ICharsPageData{
@@ -54,4 +56,8 @@ export interface ICharsPageData{
 
 export enum ESpriteSheet{
     WEBP = 'webp', PNG = 'png', JPEG = 'jpeg'
+}
+
+export enum EFont{
+    XML = 'xml', FNT = 'fnt'
 }

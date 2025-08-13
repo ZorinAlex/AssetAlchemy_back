@@ -1,5 +1,5 @@
 import {IsBoolean, IsEnum, IsNumber, IsOptional} from "class-validator";
-import { ESpriteSheet, IPackData } from './packer.interfaces';
+import {EFont, ESpriteSheet, IPackData} from './packer.interfaces';
 import {Transform} from "class-transformer";
 
 export class PackBitmapFontDto {

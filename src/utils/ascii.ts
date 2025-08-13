@@ -101,8 +101,8 @@ export interface IASCII{
 }
 
 export function getASCIIData(char: string):IASCII{
-  if(char.includes('dot') || char.includes('com')){
-    if(char.includes('dot')){
+  if(char.includes('dot') || char.includes('com') || char.includes('poin')){
+    if(char.includes('dot') || char.includes('poin')){
       asciiTable.get('.')
     }else{
       asciiTable.get(',')
