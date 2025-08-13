@@ -19,7 +19,7 @@ import sharp from 'sharp';
 import {ConfigService} from "@nestjs/config";
 import { PackBitmapFontDto } from './bitmap.font.dto';
 import { getASCIIData } from '../utils/ascii';
-import {calc_font_props, calc_scales} from "../utils/font_utils";
+import {calc_font_props, calc_scales, replace_spaces} from "../utils/font_utils";
 
 @Injectable()
 export class PackerService implements OnModuleInit{
@@ -169,7 +169,7 @@ export class PackerService implements OnModuleInit{
         }
     }
 
-    async fontXmlFromJSON(filepath: Array<string>, options: PackBitmapFontDto): Promise<string[]> {
+    async fontDataFromJSON(filepath: Array<string>, options: PackBitmapFontDto): Promise<string[]> {
         const imagesMap: Array<IPackData> = options.data;
         const pagesData: Array<ICharsPageData> = [];
         const charData: Array<ICharXmlData> = [];
@@ -189,16 +189,16 @@ export class PackerService implements OnModuleInit{
                         yoffset: '0',
                         xadvance: frameDat.frame.w,
                         page: index,
-                        chnl: 15
+                        chnl: 0
                     })
                 }
             })
         }
         const xmlData = this.createBitmapFontXML(pagesData, charData, options);
-
+        const fileName = replace_spaces(options.name);
         const outputPath: Array<string> = [];
         try {
-            const path_xml = path.join(this.outputPath, `${options.name}.xml`)
+            const path_xml = path.join(this.outputPath, `${fileName}.xml`)
             await fs.promises.writeFile(path_xml, xmlData);
             outputPath.push(path_xml);
         } catch (error) {
@@ -208,7 +208,7 @@ export class PackerService implements OnModuleInit{
         const fntData = this.createBitmapFontFNT(pagesData, charData, options);
 
         try {
-            const path_fnt = path.join(this.outputPath, `${options.name}.fnt`);
+            const path_fnt = path.join(this.outputPath, `${fileName}.fnt`);
             await fs.promises.writeFile(path_fnt, fntData);
             outputPath.push(path_fnt)
         } catch (error) {
@@ -235,38 +235,28 @@ export class PackerService implements OnModuleInit{
         })
         xml += '  </chars>\n';
         xml += '</font>';
-        console.log(xml);
         return xml;
     }
 
     createBitmapFontFNT(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>, options: PackBitmapFontDto) {
-        const padding = [0, 0, 0, 0]; // top,right,bottom,left
-        const spacing =  [1, 1];       // x,y
-        const base = options.size;
+        const padding = [0, 0, 0, 0];
+        const spacing =  [0, 0];
 
-        // порахуємо scaleW/scaleH з усіх сторінок
         const {scaleH, scaleW} = calc_scales(pagesData, charData);
+        const {lineHeight, base} = calc_font_props(charData);
         const pageCount = pagesData.length;
-        let out = '';
-        out += `info face="${escapeQuotes(options.name)}" size=${toInt(options.size)} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=${padding.join(',')} spacing=${spacing.join(',')} outline=0\n`;
-        out += `common lineHeight=${toInt(options.lineHeight)} base=${toInt(base)} scaleW=${toInt(scaleW)} scaleH=${toInt(scaleH)} pages=${pageCount} packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4\n`;
+        let out = `info face="${options.name}" size=${options.size} bold=0 italic=0 charset="" unicode=0 stretchH=100 smooth=1 aa=1 padding=${padding.join(',')} spacing=${spacing.join(',')} outline=0\n`;
+        out += `common lineHeight=${lineHeight} base=${base} scaleW=${scaleW} scaleH=${scaleH} pages=${pageCount} packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4\n`;
 
-        // список сторінок
         pagesData.forEach(pd => {
-            out += `page id=${toInt(pd.id)} file="${escapeQuotes(pd.file)}"\n`;
+            out += `page id=${pd.id} file="${pd.file}"\n`;
         });
 
-        // символи
         out += `chars count=${charData.length}\n`;
         charData.forEach(cd => {
-            out += `char id=${toInt(cd.id)} x=${toInt(cd.x)} y=${toInt(cd.y)} width=${toInt(cd.width)} height=${toInt(cd.height)} xoffset=${toInt(cd.xoffset)} yoffset=${toInt(cd.yoffset)} xadvance=${toInt(cd.xadvance)} page=${toInt(cd.page ?? 0)} chnl=${toInt(cd.chnl ?? 15)}\n`;
+            out += `char id=${cd.id} x=${cd.x} y=${cd.y} width=${cd.width} height=${cd.height} xoffset=${cd.xoffset} yoffset=${cd.yoffset} xadvance=${cd.xadvance} page=${cd.page ?? 0} chnl=${cd.chnl ?? 0}\n`;
         });
-
-        // кернінги (поки 0)
-        out += `kernings count=0\n`;
+        console.log(out);
         return out;
-
-        function toInt(v: any) { return Number.parseInt(String(v), 10) || 0; }
-        function escapeQuotes(s: string) { return String(s).replace(/"/g, '\\"'); }
     }
 }

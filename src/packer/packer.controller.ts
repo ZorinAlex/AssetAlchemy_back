@@ -16,6 +16,7 @@ import {join} from 'path';
 import {createReadStream} from 'fs';
 import {PackBitmapFontDto} from './bitmap.font.dto';
 import {filter} from 'lodash';
+import {replace_spaces} from "../utils/font_utils";
 
 @Controller('packer')
 export class PackerController {
@@ -61,8 +62,10 @@ export class PackerController {
       }),
     ) files: Express.Multer.File[],
     @Body() options: PackBitmapFontDto) {
+    const fileName = replace_spaces(options.name);
     const packOptions: PackImagesDto = {
       ...options,
+      name: fileName,
       allowRotation: false,
       smart: true,
       square: false,
@@ -73,11 +76,11 @@ export class PackerController {
     };
     const filesNames = await this.packerService.packImages(files, packOptions);
     const jsonFiles = filter(filesNames, name => name.split('.').at(-1) === 'json');
-    const fontFiles = await this.packerService.fontXmlFromJSON(jsonFiles, options);
+    const fontFiles = await this.packerService.fontDataFromJSON(jsonFiles, options);
     filesNames.push(...fontFiles);
 
     const filesToSend = filter(filesNames, name => name.split('.').at(-1) !== 'json');
-    const zipPath = join(this.packerService.outputPath, `${options.name}.zip`);
+    const zipPath = join(this.packerService.outputPath, `${fileName}.zip`);
     await this.archiveService.createZip(filesToSend, zipPath);
     await this.archiveService.removeFiles(filesNames);
     const fileStream = createReadStream(zipPath);
@@ -87,7 +90,7 @@ export class PackerController {
 
     return new StreamableFile(fileStream, {
       type: 'application/zip',
-      disposition: `attachment; filename="${options.name}.zip"`,
+      disposition: `attachment; filename="${fileName}.zip"`,
     });
   }
 }

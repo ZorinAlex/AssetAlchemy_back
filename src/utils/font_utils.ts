@@ -1,5 +1,9 @@
 import {ICharsPageData, ICharXmlData} from "../packer/packer.interfaces";
 
+export function replace_spaces(str: string): string {
+    return str.trim().replace(/\s+/g, "_");
+}
+
 export function calc_scales(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>){
     const perPageMax = new Map<number, { w: number; h: number }>();
     const pageCount = pagesData.length;
