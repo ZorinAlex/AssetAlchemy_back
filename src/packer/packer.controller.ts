@@ -81,7 +81,7 @@ export class PackerController {
 
     const filesToSend = filter(filesNames, name => name.split('.').at(-1) !== 'json');
     const zipPath = join(this.packerService.outputPath, `${fileName}.zip`);
-    await this.archiveService.createZip(filesToSend, zipPath);
+    await this.archiveService.createZip(filesToSend, zipPath)
     await this.archiveService.removeFiles(filesNames);
     const fileStream = createReadStream(zipPath);
     fileStream.on('close', () => {

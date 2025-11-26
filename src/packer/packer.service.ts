@@ -256,7 +256,6 @@ export class PackerService implements OnModuleInit{
         charData.forEach(cd => {
             out += `char id=${cd.id} x=${cd.x} y=${cd.y} width=${cd.width} height=${cd.height} xoffset=${cd.xoffset} yoffset=${cd.yoffset} xadvance=${cd.xadvance} page=${cd.page ?? 0} chnl=${cd.chnl ?? 0}\n`;
         });
-        console.log(out);
         return out;
     }
 }
