@@ -66,13 +66,14 @@ export class PackerController {
     const packOptions: PackImagesDto = {
       ...options,
       name: fileName,
+      scale: 1,
       allowRotation: false,
       smart: true,
       square: false,
       pot: false,
       tag: false,
-      border: 0,
-      padding: 0,
+      border: 1,
+      padding: 1,
     };
     const filesNames = await this.packerService.packImages(files, packOptions);
     const jsonFiles = filter(filesNames, name => name.split('.').at(-1) === 'json');

@@ -36,4 +36,12 @@ export class PackBitmapFontDto {
 
     @IsOptional()
     name: string = 'unnamed'
+
+    @IsOptional()
+    @Transform(({ value }) => Number(value))
+    spaceWidth: number = 20
+
+    @IsOptional()
+    @Transform(({ value }) => Number(value))
+    base: number = 0  // 0 = auto-calculate from char data
 }

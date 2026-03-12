@@ -32,18 +32,23 @@ export interface IProcessImages{
 
 export interface IPackData{
     filename: string,
-    char: string
+    char: string,
+    width?: number,
+    height?: number,
+    xoffset?: number,
+    yoffset?: number,
+    xadvance?: number,
 }
 
 export interface ICharXmlData{
     id: string,
-    x:string,
-    y:string,
-    width: string,
-    height: string,
-    xoffset: string,
-    yoffset: string,
-    xadvance: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    xoffset: number,
+    yoffset: number,
+    xadvance: number,
     page: number,
     chnl: number
 }

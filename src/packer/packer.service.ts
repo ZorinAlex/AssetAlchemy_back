@@ -181,19 +181,28 @@ export class PackerService implements OnModuleInit{
                 if(charMap){
                     charData.push({
                         id: getASCIIData(charMap.char).DEC.toString(),
-                        x:frameDat.frame.x,
-                        y:frameDat.frame.y,
-                        width: frameDat.frame.w,
-                        height: frameDat.frame.h,
-                        xoffset: '0',
-                        yoffset: '0',
-                        xadvance: frameDat.frame.w,
+                        x: frameDat.frame.x,
+                        y: frameDat.frame.y,
+                        width:    charMap.width    ?? frameDat.frame.w,
+                        height:   charMap.height   ?? frameDat.frame.h,
+                        xoffset:  charMap.xoffset  ?? 0,
+                        yoffset:  charMap.yoffset  ?? 0,
+                        xadvance: charMap.xadvance ?? frameDat.frame.w,
                         page: index,
                         chnl: 0
                     })
                 }
             })
         }
+        // Space character (ASCII 32) — no glyph, only xadvance
+        charData.push({
+            id: '32',
+            x: 0, y: 0, width: 0, height: 0,
+            xoffset: 0, yoffset: 0,
+            xadvance: options.spaceWidth,
+            page: 0, chnl: 0
+        });
+
         const xmlData = this.createBitmapFontXML(pagesData, charData, options);
         const fileName = replace_spaces(options.name);
         const outputPath: Array<string> = [];
@@ -219,7 +228,9 @@ export class PackerService implements OnModuleInit{
 
     createBitmapFontXML(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>, options: PackBitmapFontDto) {
         const {scaleH, scaleW} = calc_scales(pagesData, charData);
-        const {lineHeight, base} = calc_font_props(charData);
+        const { lineHeight: calcLineHeight, base: calcBase } = calc_font_props(charData);
+        const lineHeight = options.lineHeight || calcLineHeight;
+        const base       = options.base       || calcBase;
         let xml = `<?xml version='1.0'?> \n`;
         xml += '<font>\n';
         xml += `<info aa='1' face="${options.name}" size='${options.size}' smooth='1' stretchH='100' bold='0' padding='0,0,0,0' spacing='0,0' italic='0' />\n`;
@@ -243,7 +254,9 @@ export class PackerService implements OnModuleInit{
         const spacing =  [0, 0];
 
         const {scaleH, scaleW} = calc_scales(pagesData, charData);
-        const {lineHeight, base} = calc_font_props(charData);
+        const { lineHeight: calcLineHeight, base: calcBase } = calc_font_props(charData);
+        const lineHeight = options.lineHeight || calcLineHeight;
+        const base       = options.base       || calcBase;
         const pageCount = pagesData.length;
         let out = `info face="${options.name}" size=${options.size} bold=0 italic=0 charset="" unicode=0 stretchH=100 smooth=1 aa=1 padding=${padding.join(',')} spacing=${spacing.join(',')} outline=0\n`;
         out += `common lineHeight=${lineHeight} base=${base} scaleW=${scaleW} scaleH=${scaleH} pages=${pageCount} packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4\n`;
