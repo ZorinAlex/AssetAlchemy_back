@@ -1,8 +1,11 @@
-version: '3.7'
-
 services:
   server:
-    image: zorinalex/assetalchemy_server
+    # Tag must be explicit — without it `compose push` sends an empty tag and
+    # the registry answers 400 invalid tag format
+    image: zorinalex/assetalchemy_server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: assetalchemy_server
     restart: always
     deploy:
@@ -14,7 +17,10 @@ services:
     networks:
       - assetalchemy_network
   client:
-    image: zorinalex/assetalchemy_client
+    image: zorinalex/assetalchemy_client:latest
+    build:
+      context: ../client
+      dockerfile: Dockerfile
     container_name: assetalchemy_client
     restart: always
     ports:
