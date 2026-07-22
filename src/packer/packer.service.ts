@@ -4,6 +4,7 @@ import fs from "fs";
 import {IRectangle, MaxRectsPacker, Rectangle} from 'maxrects-packer';
 import {
     ESpriteSheet,
+    EResample,
     ICharsPageData,
     ICharXmlData,
     IPackData,
@@ -12,14 +13,14 @@ import {
     ISheetData,
 } from './packer.interfaces';
 import {PackImagesDto} from "./pack.dto";
-import {Jimp} from "jimp";
+import {Jimp, ResizeStrategy} from "jimp";
 import { find, findIndex, forEach } from 'lodash';
 import * as path from "node:path";
 import sharp from 'sharp';
 import {ConfigService} from "@nestjs/config";
 import { PackBitmapFontDto } from './bitmap.font.dto';
 import { getASCIIData } from '../utils/ascii';
-import {calc_font_props, calc_scales, replace_spaces} from "../utils/font_utils";
+import {calc_font_props, calc_scales, decodeUploadName, replace_spaces} from "../utils/font_utils";
 
 @Injectable()
 export class PackerService implements OnModuleInit{
@@ -41,7 +42,7 @@ export class PackerService implements OnModuleInit{
             options.padding,
             options);
 
-        const {images, imagesData} = await this.processImages(files, options.scale);
+        const {images, imagesData} = await this.processImages(files, options.scale, options.resample);
         const spriteSheetData: ISheetData[] = this.getSpriteSheetData(options.name, packer, imagesData);
         const fileNames = [];
         for (let index = 0; index < spriteSheetData.length; index++) {
@@ -68,13 +69,18 @@ export class PackerService implements OnModuleInit{
         return fileNames
     }
 
-    async processImages(files: Express.Multer.File[], scale: number = 1): Promise<IProcessImages> {
+    async processImages(files: Express.Multer.File[], scale: number = 1, resample: EResample = EResample.SMOOTH): Promise<IProcessImages> {
         const images = [];
         const imagesData: IRect[] = []
+        // Jimp rounds to Math.round (clamped at 1px) — same formula the client
+        // uses to preview the output metrics, so the two always agree
+        const mode = resample === EResample.NEAREST
+            ? ResizeStrategy.NEAREST_NEIGHBOR
+            : ResizeStrategy.BILINEAR;
         for (let index = 0; index < files.length; index++) {
             const image = await Jimp.read(files[index].buffer);
-            if (scale !== 1) image.scale(scale);
-            const name = files[index].originalname.split('.')[0];
+            if (scale !== 1) image.scale({ f: scale, mode });
+            const name = decodeUploadName(files[index].originalname).split('.')[0];
             images.push(image);
             imagesData.push(
                 {

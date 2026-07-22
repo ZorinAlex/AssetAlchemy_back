@@ -1,5 +1,5 @@
 import {IsBoolean, IsEnum, IsNumber, IsOptional} from "class-validator";
-import {EFont, ESpriteSheet, IPackData} from './packer.interfaces';
+import {EFont, EResample, ESpriteSheet, IPackData} from './packer.interfaces';
 import {Transform} from "class-transformer";
 
 export class PackBitmapFontDto {
@@ -11,9 +11,15 @@ export class PackBitmapFontDto {
     @Transform(({ value }) => Number(value))
     maxSheetHeight: number = 1024;
 
+    // Glyph metrics arrive already multiplied by this — the server only has to
+    // resample the images to match
     @IsOptional()
     @Transform(({ value }) => Number(value))
     scale: number = 1
+
+    @IsEnum(EResample)
+    @IsOptional()
+    resample: EResample = EResample.SMOOTH
 
     @IsOptional()
     @Transform(({ value }) => Number(value))

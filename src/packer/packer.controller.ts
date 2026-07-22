@@ -66,7 +66,6 @@ export class PackerController {
     const packOptions: PackImagesDto = {
       ...options,
       name: fileName,
-      scale: 1,
       allowRotation: false,
       smart: true,
       square: false,

@@ -1,5 +1,5 @@
 import {IsBoolean, IsEnum, IsNumber, IsOptional} from "class-validator";
-import {ESpriteSheet} from "./packer.interfaces";
+import {EResample, ESpriteSheet} from "./packer.interfaces";
 import {Transform} from "class-transformer";
 
 export class PackImagesDto {
@@ -42,6 +42,10 @@ export class PackImagesDto {
     @IsOptional()
     @Transform(({ value }) => Number(value))
     scale: number = 1
+
+    @IsEnum(EResample)
+    @IsOptional()
+    resample: EResample = EResample.SMOOTH
 
     @IsOptional()
     @Transform(({ value }) => Number(value))

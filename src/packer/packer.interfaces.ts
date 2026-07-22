@@ -66,3 +66,7 @@ export enum ESpriteSheet{
 export enum EFont{
     XML = 'xml', FNT = 'fnt'
 }
+
+export enum EResample{
+    NEAREST = 'nearest', SMOOTH = 'smooth'
+}

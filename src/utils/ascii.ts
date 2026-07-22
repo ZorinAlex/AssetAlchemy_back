@@ -110,17 +110,25 @@ export interface IASCII{
 }
 
 export function getASCIIData(char: string):IASCII{
+  // Name matching is case-insensitive: "Euro.png" must resolve like "euro.png",
+  // otherwise it silently falls through to the letter "E".
+  const name = char.toLowerCase();
   switch (true) {
-    case char.includes('dot'):
-    case char.includes('poin'):
+    case name.includes('dot'):
+    case name.includes('poin'):
       return asciiTable.get('.');
-    case char.includes('com'):
+    case name.includes('com'):
       return asciiTable.get(',');
-    case char.includes('dol'):
+    case name.includes('dol'):
       return asciiTable.get('$');
-    case char.includes('eur'):
+    case name.includes('eur'):
       return asciiTable.get('€');
-    default:
-      return asciiTable.get(char.charAt(0))!;
+    default: {
+      // Take the first code point, not the first UTF-16 unit, so characters
+      // outside the BMP survive. Anything missing from the table still gets its
+      // real Unicode id instead of blowing up on undefined.
+      const first = [...char][0] ?? '';
+      return asciiTable.get(first) ?? { DEC: first.codePointAt(0) ?? 0, Char: first };
+    }
   }
 }

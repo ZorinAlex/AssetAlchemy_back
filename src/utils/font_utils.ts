@@ -4,6 +4,18 @@ export function replace_spaces(str: string): string {
     return str.trim().replace(/\s+/g, "_");
 }
 
+/**
+ * multer/busboy hand over `originalname` decoded as latin1, so a file named
+ * "€.png" arrives as "â¬.png" and no longer matches the filename the client
+ * sent in `data` — the glyph gets packed into the atlas but dropped from the
+ * font. Re-read those bytes as UTF-8. Pure ASCII names are unaffected.
+ */
+export function decodeUploadName(name: string): string {
+    const decoded = Buffer.from(name, 'latin1').toString('utf8');
+    // If the bytes weren't valid UTF-8 the name was already fine as-is
+    return decoded.includes('�') ? name : decoded;
+}
+
 export function calc_scales(pagesData: Array<ICharsPageData>, charData: Array<ICharXmlData>){
     const perPageMax = new Map<number, { w: number; h: number }>();
     const pageCount = pagesData.length;
