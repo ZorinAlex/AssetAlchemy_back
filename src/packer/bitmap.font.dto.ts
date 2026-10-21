@@ -37,8 +37,11 @@ export class PackBitmapFontDto {
     @IsOptional()
     format: ESpriteSheet = ESpriteSheet.PNG;
 
+    // Optional: without it every file is a glyph named after its file
+    // ("A.png" → "A", "point.png" → "."), with default metrics
+    @IsOptional()
     @Transform(({value})=>JSON.parse(value))
-    data: Array<IPackData>
+    data?: Array<IPackData>
 
     @IsOptional()
     name: string = 'unnamed'

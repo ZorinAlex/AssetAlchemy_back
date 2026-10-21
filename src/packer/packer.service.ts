@@ -13,7 +13,7 @@ import {
     ISheetData,
 } from './packer.interfaces';
 import {PackImagesDto} from "./pack.dto";
-import {Jimp, ResizeStrategy} from "jimp";
+import {Jimp} from "jimp";
 import { find, findIndex, forEach } from 'lodash';
 import * as path from "node:path";
 import sharp from 'sharp';
@@ -72,14 +72,21 @@ export class PackerService implements OnModuleInit{
     async processImages(files: Express.Multer.File[], scale: number = 1, resample: EResample = EResample.SMOOTH): Promise<IProcessImages> {
         const images = [];
         const imagesData: IRect[] = []
-        // Jimp rounds to Math.round (clamped at 1px) — same formula the client
-        // uses to preview the output metrics, so the two always agree
-        const mode = resample === EResample.NEAREST
-            ? ResizeStrategy.NEAREST_NEIGHBOR
-            : ResizeStrategy.BILINEAR;
+        // Resized with sharp, not Jimp: Jimp's bilinear reads only 2x2 source
+        // pixels per output pixel and ignores alpha, so downscaling gives jagged
+        // edges and dirty halos. Sizes are Math.round clamped at 1px — the same
+        // formula the client uses to preview the output metrics.
+        const kernel = resample === EResample.NEAREST ? 'nearest' : 'lanczos3';
         for (let index = 0; index < files.length; index++) {
-            const image = await Jimp.read(files[index].buffer);
-            if (scale !== 1) image.scale({ f: scale, mode });
+            let buffer = files[index].buffer;
+            if (scale !== 1) {
+                const { width, height } = await sharp(buffer).metadata();
+                buffer = await sharp(buffer)
+                    .resize(Math.round(width * scale) || 1, Math.round(height * scale) || 1, { fit: 'fill', kernel })
+                    .png()
+                    .toBuffer();
+            }
+            const image = await Jimp.read(buffer);
             const name = decodeUploadName(files[index].originalname).split('.')[0];
             images.push(image);
             imagesData.push(

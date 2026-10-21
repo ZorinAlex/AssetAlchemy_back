@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   FileTypeValidator,
+  Get,
   ParseFilePipe,
   Post,
   StreamableFile,
@@ -16,7 +17,8 @@ import {join} from 'path';
 import {createReadStream} from 'fs';
 import {PackBitmapFontDto} from './bitmap.font.dto';
 import {filter} from 'lodash';
-import {replace_spaces} from "../utils/font_utils";
+import {decodeUploadName, replace_spaces} from "../utils/font_utils";
+import {BITMAP_FONT_DOCS} from './bitmap.font.docs';
 
 @Controller('packer')
 export class PackerController {
@@ -51,6 +53,11 @@ export class PackerController {
     });
   }
 
+  @Get('bfont')
+  describeBitmapFont() {
+    return BITMAP_FONT_DOCS;
+  }
+
   @Post('bfont')
   @UseInterceptors(FilesInterceptor('files'))
   async packBitmapFont(
@@ -62,6 +69,12 @@ export class PackerController {
       }),
     ) files: Express.Multer.File[],
     @Body() options: PackBitmapFontDto) {
+    if (!options.data?.length) {
+      options.data = files.map(file => {
+        const filename = decodeUploadName(file.originalname);
+        return { filename, char: filename.split('.')[0] };
+      });
+    }
     const fileName = replace_spaces(options.name);
     const packOptions: PackImagesDto = {
       ...options,
